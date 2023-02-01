@@ -17,4 +17,20 @@ class SaleTest extends AnyFlatSpec with should.Matchers {
     sale should be(expected)
   }
 
+  "SaleItem" should "return the total" in {
+    val saleItem = SaleItem(0, 2, 13.3)
+    saleItem.total should be(26.6)
+  }
+
+  "Sale" should "return the total" in {
+    val saleItems = List(
+      SaleItem(1, 2, 5),
+      SaleItem(2, 1, 1),
+      SaleItem(3, 5, 1.1),
+      SaleItem(4, 4, 25)
+    )
+    val sale = Sale(1, saleItems, "")
+    sale.total should be(116.5)
+  }
+
 }

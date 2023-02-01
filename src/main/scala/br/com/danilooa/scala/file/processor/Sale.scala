@@ -4,11 +4,15 @@ import scala.util.Try
 
 case class Sale(id: Int,
                 items: List[SaleItem],
-                salesManName: String)
+                salesManName: String) {
+  val total = items.foldLeft(BigDecimal(0))(_ + _.total)
+}
 
 case class SaleItem(id: Int,
                     quantity: Int,
-                    price: BigDecimal)
+                    price: BigDecimal) {
+  val total = quantity * price
+}
 
 object Sale {
 
