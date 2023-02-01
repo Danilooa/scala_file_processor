@@ -4,7 +4,7 @@ import org.scalatest._
 import flatspec._
 import matchers._
 
-class ExampleSpec extends AnyFlatSpec with should.Matchers {
+class LayoutTest extends AnyFlatSpec with should.Matchers {
 
   "None Layout " should "be returned from Strings shorter than 3" in {
     Layout("01") should be(Layout.None)
@@ -16,11 +16,11 @@ class ExampleSpec extends AnyFlatSpec with should.Matchers {
     Layout("001") should be(Layout.Salesman)
   }
 
-  "String started with 002 " should "be Customers" in {
+  "Strings started with 002 " should "be Customers" in {
     Layout("002") should be(Layout.Customer)
   }
 
-  "Strings started with 003 " should "be Sale" in {
+  "Strings started with 003 " should "be Sales" in {
     Layout("003") should be(Layout.Sale)
   }
 
