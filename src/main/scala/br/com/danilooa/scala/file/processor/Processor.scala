@@ -7,10 +7,4 @@ case class Report(clientsAmount: Int,
 
 object Report {
 
-  def apply(previous: Report): Report = {
-    previous
-  }
-
-  def apply() = Report(0, 0, 0, Map())
-
 }

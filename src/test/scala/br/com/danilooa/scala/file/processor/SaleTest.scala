@@ -6,7 +6,7 @@ import org.scalatest.matchers._
 class SaleTest extends AnyFlatSpec with should.Matchers {
 
   "A sale string " should "be converted to Sale" in {
-    val sale = Sale("003ç10ç[1-10-100,2-30-2.50,3-40-3.10]çDiego")
+    val sale = RowParser("003ç10ç[1-10-100,2-30-2.50,3-40-3.10]çDiego").sale
     val items = List(
       SaleItem(1, 10, BigDecimal(100)),
       SaleItem(2, 30, BigDecimal(2.50)),
