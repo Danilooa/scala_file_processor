@@ -1,52 +1,41 @@
 package br.com.danilooa.scala.file.processor
 
-import java.io.File
-import java.nio.file.Files
+import java.nio.file.{FileSystems, Path, Paths, StandardWatchEventKinds}
 import scala.language.postfixOps;
 
-case class ListeningResult(datFileFound: Boolean, endFileFound: Boolean, fileName: String)
-
-object ListeningResult {
-  val None = ListeningResult(false, false, "")
+trait FileProcessor {
+  def process(file: Path): Unit
 }
 
-trait FolderListener {
-  def reportFile(fileName: String): Unit = {
-    println(fileName)
+class FolderWatcher {
+
+  private var running = false
+
+  def isRunning(): Boolean = {
+    running
   }
-}
 
-object FolderListener {
-
-  def run(folderPath: String, listener: FolderListener, lifeSpan: Long = -1): Unit = {
-    val initTime = System.currentTimeMillis()
+  def run(folderPath: String, fileProcessor: FileProcessor): Unit = {
     var mustEndProcess = false
 
-    val dir = new File(folderPath)
     val datFileRegex = """(.*\.DAT$)""" r
     val endFileName = """(^END.DAT$)""" r
 
+    val dir = Paths.get(folderPath)
+    val watcher = FileSystems.getDefault().newWatchService()
+    val key = dir.register(watcher, StandardWatchEventKinds.ENTRY_CREATE)
+
     while (!mustEndProcess) {
-      val listeningResult = dir
-        .listFiles()
-        .foldLeft(ListeningResult.None)((result, file) => {
-          if (result != ListeningResult.None) return result
-          val fileName = file.getName
-          fileName match {
-            case datFileRegex(_) => ListeningResult(true, false, fileName)
-            case endFileName(_) => ListeningResult(false, true, fileName)
-            case _ => ListeningResult.None
-          }
-        })
-
-      val endFileFound = listeningResult.endFileFound
-      val lifeSpanGone = if (lifeSpan < 0) false else (System.currentTimeMillis() - initTime) > lifeSpan
-      mustEndProcess = endFileFound || lifeSpanGone
-      if (listeningResult.datFileFound) {
-        listener.reportFile(listeningResult.fileName)
-        new File(folderPath + "/" + listeningResult.fileName).renameTo(new File(folderPath + "/" + listeningResult.fileName + ".DOING"))
-      }
+      running = true
+      watcher.take().pollEvents().forEach(watchEvent => {
+        val file = dir.resolve(watchEvent.context().asInstanceOf[Path])
+        file.getFileName.toString match {
+          case datFileRegex(fileName) => fileProcessor.process(file)
+          case endFileName(_) => mustEndProcess = true
+        }
+      })
+      key.reset()
     }
-
   }
+
 }

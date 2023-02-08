@@ -1,50 +1,62 @@
 package br.com.danilooa.scala.file.processor
 
-import org.scalamock.scalatest.MockFactory
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatest.concurrent.Eventually
-import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should
+import org.scalatest.time.{Milliseconds, Seconds, Span}
 
-import java.nio.file.{Files, Paths}
-import scala.concurrent.ExecutionContext.Implicits.global
+import java.io.File
+import java.nio.file.{Files, Path, Paths}
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
-class FolderListenerTest extends AnyFlatSpec with should.Matchers with Eventually with MockFactory {
+class FolderListenerTest extends AnyFlatSpecLike with should.Matchers with BeforeAndAfter with Eventually {
+
+  private val filesToRemove = ArrayBuffer[String]()
+
+  after {
+    filesToRemove.foreach( fileName => {
+      new File(fileName).delete()
+    })
+  }
 
   "FileListener" should " run the process when a new .DAT file appears" in {
-    val folderListener = mock[FolderListener]
 
     val inputFileName = FileUtilsForTests.randomFileName("FolderListenerTest_Input_", ".DAT", 50)
 
-    eventually {
-      (folderListener.reportFile _).expects(inputFileName)
+    val fileProcessor = new FileProcessor {
+      var hasFoundInputFile = false
+
+      override def process(file: Path): Unit = {
+        hasFoundInputFile = hasFoundInputFile || (file.getFileName.toString == inputFileName)
+      }
     }
 
-    Future {
-      FolderListener.run(FileUtilsForTests.inDir, folderListener)
-    } onComplete {
-      case _ =>
+    val folderWatcher = new FolderWatcher()
+
+    val future = Future {
+      folderWatcher.run(FileUtilsForTests.inDir, fileProcessor)
     }
 
-    //    val content = List(
-    //      "001ç1234567891234çDiegoç50000",
-    //      "001ç3245678865434çRenatoç40000.99",
-    //      "002ç2345675434544345çJosedaSilvaçRural",
-    //      "002ç2345675433444345çEduardoPereiraçRural",
-    //      "003ç10ç[1-10-100,2-30-2.50,3-40-3.10]çDiego",
-    //      "003ç08ç[1-34-10,2-33-1.50,3-40-0.10]çRenato"
-    //    )
-    //
-    //
-    //    val name: String = Paths.get(filesInputDir, inputFileName).toString
-    //    val writer = new PrintWriter(name)
-    //    writer.write(content.mkString("\n"))
-    //    writer.close()
+    while (!folderWatcher.isRunning()) {
+      future onComplete {
+        case _ =>
+      }
+    }
 
+    val copiedInputFile = FileUtilsForTests.pathOfAnyInputFile(inputFileName)
+    filesToRemove += copiedInputFile
     Files.copy(
       Paths.get(FileUtilsForTests.pathOfAnySampleFile("EMPTY.DAT")),
-      Paths.get(FileUtilsForTests.pathOfAnyInputFile(inputFileName))
+      Paths.get(copiedInputFile)
     )
+
+    eventually(timeout(Span(5, Seconds)), interval(Span(500, Milliseconds))) {
+      fileProcessor.hasFoundInputFile should be(true)
+    }
+
   }
 
 }
