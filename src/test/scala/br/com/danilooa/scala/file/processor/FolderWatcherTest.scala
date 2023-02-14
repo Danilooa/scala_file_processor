@@ -12,7 +12,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class FolderListenerTest extends AnyFlatSpecLike with should.Matchers with BeforeAndAfter with Eventually {
+class FolderWatcherTest extends AnyFlatSpecLike with should.Matchers with BeforeAndAfter with Eventually {
 
   private val filesToRemove = ArrayBuffer[String]()
 
@@ -29,15 +29,15 @@ class FolderListenerTest extends AnyFlatSpecLike with should.Matchers with Befor
     val fileProcessor = new FileProcessor {
       var hasFoundInputFile = false
 
-      override def process(file: Path): Unit = {
-        hasFoundInputFile = hasFoundInputFile || (file.getFileName.toString == inputFileName)
+      override def process(file: String, outputDir: String): Unit = {
+        hasFoundInputFile = hasFoundInputFile || (file == inputFileName)
       }
     }
 
     val folderWatcher = new FolderWatcher()
 
     val future = Future {
-      folderWatcher.run(FileUtilsForTests.inDir, fileProcessor)
+      folderWatcher.run(FileUtilsForTests.inDir, FileUtilsForTests.outDir, fileProcessor)
     }
 
     while (!folderWatcher.isRunning()) {
