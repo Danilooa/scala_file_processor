@@ -15,14 +15,21 @@ object RegexUtils {
 trait FileProcessor {
   def process(file: String, outputDir: String): Unit = {
     Future {
-      Report(Source.fromFile(file).getLines().map(RowParser(_)).toList)
+      println(s"Processing $file")
+      val report = Report(Source.fromFile(file).getLines().map(RowParser(_)).toList)
+      println(s"Finished to process $file")
+      report
     } flatMap (r => Future {
       val outputFilePath = OutputFilePath.renameInputFile(file, outputDir)
+      println(s"Writing report $outputFilePath")
       val writer = new BufferedWriter(new FileWriter(outputFilePath))
       writer.write(r.toString)
       writer.close()
+      println(s"Report $outputFilePath wrote")
     }) foreach (_ => {
+      println(s"Deleting $file")
       new File(file).delete()
+      println(s"Deleted $file")
     })
   }
 }
@@ -43,6 +50,12 @@ class FolderWatcher {
     this.running
   }
 
+  private def turnOn(): Unit = {
+    if (running) return;
+    this.running = true;
+    println("FolderWatcher is running")
+  }
+
   def run(inputDir: String, outputDir: String, fileProcessor: FileProcessor = new FileProcessor {}): Unit = {
 
     val dir = Paths.get(inputDir)
@@ -50,11 +63,12 @@ class FolderWatcher {
     val key = dir.register(watcher, StandardWatchEventKinds.ENTRY_CREATE)
 
     while (true) {
-      this.running = true
+      turnOn()
       watcher.take().pollEvents().forEach(watchEvent => {
         val file = dir.resolve(watchEvent.context().asInstanceOf[Path])
+        println(s"FIle ${file.getFileName} has detected")
         file.getFileName.toString match {
-          case RegexUtils.datFileRegex(fileName) => fileProcessor.process(fileName, outputDir)
+          case RegexUtils.datFileRegex(_) => fileProcessor.process(file.toString, outputDir)
           case _ => println(s"Ignoring file ${file.getFileName}")
         }
       })
@@ -62,7 +76,4 @@ class FolderWatcher {
     }
   }
 
-  def main(args: Array[String]): Unit = {
-
-  }
 }

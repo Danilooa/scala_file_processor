@@ -30,7 +30,8 @@ class FolderWatcherTest extends AnyFlatSpecLike with should.Matchers with Before
       var hasFoundInputFile = false
 
       override def process(file: String, outputDir: String): Unit = {
-        hasFoundInputFile = hasFoundInputFile || (file == inputFileName)
+        val onlyFileName = Paths.get(file).getFileName.toString
+        hasFoundInputFile = hasFoundInputFile || (inputFileName == onlyFileName)
       }
     }
 
