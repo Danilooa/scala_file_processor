@@ -16,7 +16,7 @@ trait FileProcessor {
   def process(file: String, outputDir: String): Unit = {
     Future {
       println(s"Processing $file")
-      val report = Report(Source.fromFile(file).getLines().map(RowParser(_)).toList)
+      val report = Report(Source.fromFile(file).getLines().toVector.view.map(RowParser(_)))
       println(s"Finished to process $file")
       report
     } flatMap (r => Future {

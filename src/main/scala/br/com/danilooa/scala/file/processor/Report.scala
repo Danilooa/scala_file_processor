@@ -1,5 +1,7 @@
 package br.com.danilooa.scala.file.processor
 
+import scala.collection.SeqView
+
 case class Report(clientsAmount: Int,
                   salesmanAmount: Int,
                   mostExpensiveSale: Sale,
@@ -17,7 +19,7 @@ object Report {
 
   val None = Report(0, 0, Sale.None, Map())
 
-  def apply(rows: List[Row]): Report = {
+  def apply(rows: SeqView[Row]): Report = {
     rows.foldLeft(Report.None)((report, row) => {
       row.layout match {
         case Layout.Customer =>
